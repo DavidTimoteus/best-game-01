@@ -1,7 +1,10 @@
 # Grid Prism: Polarity Protocol
-**Make the best game bounty entry for make.fun ($1,000 USDC)**
 
-Grid Prism: Polarity Protocol is a high-performance 2D Canvas vector arcade roguelike built using fixed-step simulation, procedural harmonic Web Audio synthesis, and zero-allocation entity pooling.
+[![make.fun · best-game-01](https://make.fun/badge/best-game-01.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![rank](https://make.fun/badge/best-game-01/DavidTimoteus/best-game-01/rank.svg)](https://make.fun/bounty/best-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![reward](https://make.fun/badge/best-game-01/DavidTimoteus/best-game-01/reward.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+
+Grid Prism: Polarity Protocol is a high-performance 2D Canvas vector arcade roguelike built for the [make.fun](https://make.fun/bounty/best-game-01) "Make the best game" bounty ($1,000 USDC).
 
 ## Features
 - **Original Vector Aesthetic:** Glowing high-contrast neon lines, chromatic HUD, and responsive vector rendering.
