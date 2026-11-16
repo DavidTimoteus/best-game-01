@@ -1,299 +1,181 @@
-// Game Entities for Grid Prism: Polarity Protocol
-import {
-  POLARITY_CYAN,
-  POLARITY_AMBER,
-  COLOR_CYAN,
-  COLOR_AMBER,
-  COLOR_MAGENTA,
-  PLAYER_SPEED,
-  PLAYER_DASH_SPEED,
-  PLAYER_DASH_DURATION,
-  PLAYER_DASH_COOLDOWN,
-  PLAYER_MAX_SHIELD,
-  VIEW_WIDTH,
-  VIEW_HEIGHT,
-} from './config.js';
+/**
+ * Entity constructors for the player vessel, polarity bullets, and all 5 enemy
+ * and hazard archetypes (Resonance Orbs, Chaser Drones, Laser Gates,
+ * Turret Bastions, and the Singularity Nexus Boss).
+ */
 
-export class Player {
-  constructor() {
-    this.reset();
-  }
+import { ARENA_HEIGHT, ARENA_WIDTH, PLAYER_CONFIG, POLARITY } from './config.js';
 
-  reset() {
-    this.x = VIEW_WIDTH / 2;
-    this.y = VIEW_HEIGHT / 2;
-    this.vx = 0;
-    this.vy = 0;
-    this.radius = 18;
-    this.angle = 0;
-    this.polarity = POLARITY_CYAN;
-    this.shield = PLAYER_MAX_SHIELD;
-    this.energy = 0;
-    this.dashTimer = 0;
-    this.dashCooldown = 0;
-    this.combo = 0;
-    this.score = 0;
-    this.absorbedCount = 0;
-    this.isDashing = false;
-    this.trail = [];
-  }
+let nextEntityId = 1;
 
-  togglePolarity() {
-    this.polarity = this.polarity === POLARITY_CYAN ? POLARITY_AMBER : POLARITY_CYAN;
-  }
-
-  triggerDash() {
-    if (this.dashCooldown <= 0) {
-      this.dashTimer = PLAYER_DASH_DURATION;
-      this.dashCooldown = PLAYER_DASH_COOLDOWN;
-      this.isDashing = true;
-      return true;
-    }
-    return false;
-  }
-
-  update(dt, input) {
-    if (this.dashCooldown > 0) this.dashCooldown -= dt;
-    if (this.dashTimer > 0) {
-      this.dashTimer -= dt;
-      if (this.dashTimer <= 0) this.isDashing = false;
-    }
-
-    let mx = 0;
-    let my = 0;
-    if (input.isDown('KeyW') || input.isDown('ArrowUp')) my -= 1;
-    if (input.isDown('KeyS') || input.isDown('ArrowDown')) my += 1;
-    if (input.isDown('KeyA') || input.isDown('ArrowLeft')) mx -= 1;
-    if (input.isDown('KeyD') || input.isDown('ArrowRight')) mx += 1;
-
-    const len = Math.hypot(mx, my);
-    if (len > 0) {
-      mx /= len;
-      my /= len;
-      this.angle = Math.atan2(my, mx);
-    }
-
-    const currentSpeed = this.isDashing ? PLAYER_DASH_SPEED : PLAYER_SPEED;
-    this.vx = mx * currentSpeed;
-    this.vy = my * currentSpeed;
-
-    this.x = Math.max(this.radius, Math.min(VIEW_WIDTH - this.radius, this.x + this.vx * dt));
-    this.y = Math.max(this.radius, Math.min(VIEW_HEIGHT - this.radius, this.y + this.vy * dt));
-
-    // Record trail
-    this.trail.unshift({ x: this.x, y: this.y, alpha: 1, polarity: this.polarity });
-    if (this.trail.length > 8) this.trail.pop();
-    for (let i = 0; i < this.trail.length; i++) {
-      this.trail[i].alpha *= 0.85;
-    }
-  }
-
-  render(ctx) {
-    const color = this.polarity === POLARITY_CYAN ? COLOR_CYAN : COLOR_AMBER;
-
-    // Draw trail
-    ctx.save();
-    for (let i = this.trail.length - 1; i >= 0; i--) {
-      const t = this.trail[i];
-      const trailColor = t.polarity === POLARITY_CYAN ? COLOR_CYAN : COLOR_AMBER;
-      ctx.globalAlpha = t.alpha * 0.4;
-      ctx.strokeStyle = trailColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, this.radius * (0.4 + (1 - i / this.trail.length) * 0.6), 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Draw player prism ship
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.angle);
-
-    ctx.shadowColor = color;
-    ctx.shadowBlur = this.isDashing ? 25 : 12;
-
-    // Triangular aerodynamic prism
-    ctx.beginPath();
-    ctx.moveTo(this.radius * 1.3, 0);
-    ctx.lineTo(-this.radius * 0.9, -this.radius * 0.8);
-    ctx.lineTo(-this.radius * 0.5, 0);
-    ctx.lineTo(-this.radius * 0.9, this.radius * 0.8);
-    ctx.closePath();
-
-    ctx.fillStyle = this.isDashing ? '#ffffff' : color;
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Center core
-    ctx.beginPath();
-    ctx.arc(0, 0, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-
-    ctx.restore();
-  }
+export function resetEntityIds() {
+  nextEntityId = 1;
 }
 
-export class EnergyNode {
-  constructor(x, y, polarity, vx, vy) {
-    this.x = x;
-    this.y = y;
-    this.polarity = polarity;
-    this.vx = vx;
-    this.vy = vy;
-    this.radius = 12;
-    this.pulse = Math.random() * Math.PI * 2;
-    this.active = true;
-  }
-
-  update(dt) {
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
-    this.pulse += dt * 5;
-  }
-
-  render(ctx) {
-    const color = this.polarity === POLARITY_CYAN ? COLOR_CYAN : COLOR_AMBER;
-    const r = this.radius + Math.sin(this.pulse) * 2.5;
-
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.restore();
-  }
+export function otherPolarity(polarity) {
+  return polarity === POLARITY.CYAN ? POLARITY.AMBER : POLARITY.CYAN;
 }
 
-export class HazardBarrier {
-  constructor(x, y, angle, length, polarity, rotSpeed = 1) {
-    this.x = x;
-    this.y = y;
-    this.angle = angle;
-    this.length = length;
-    this.polarity = polarity; // POLARITY_CYAN, POLARITY_AMBER, or 2 (neutral magenta hazard)
-    this.rotSpeed = rotSpeed;
-    this.active = true;
-  }
-
-  update(dt) {
-    this.angle += this.rotSpeed * dt;
-  }
-
-  render(ctx) {
-    const color =
-      this.polarity === POLARITY_CYAN
-        ? COLOR_CYAN
-        : this.polarity === POLARITY_AMBER
-        ? COLOR_AMBER
-        : COLOR_MAGENTA;
-
-    const hx = Math.cos(this.angle) * (this.length / 2);
-    const hy = Math.sin(this.angle) * (this.length / 2);
-
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-
-    ctx.beginPath();
-    ctx.moveTo(this.x - hx, this.y - hy);
-    ctx.lineTo(this.x + hx, this.y + hy);
-    ctx.stroke();
-
-    // Node caps
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(this.x - hx, this.y - hy, 4, 0, Math.PI * 2);
-    ctx.arc(this.x + hx, this.y + hy, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
+export function randomPolarity() {
+  return Math.random() < 0.5 ? POLARITY.CYAN : POLARITY.AMBER;
 }
 
-export class SingularityNexusBoss {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.radius = 48;
-    this.shield = 100;
-    this.maxShield = 100;
-    this.rotInner = 0;
-    this.rotOuter = 0;
-    this.pulse = 0;
-    this.active = true;
-  }
+export function createPlayer() {
+  return {
+    x: ARENA_WIDTH * 0.28,
+    y: ARENA_HEIGHT * 0.52,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    radius: PLAYER_CONFIG.radius,
+    polarity: POLARITY.CYAN,
+    shield: PLAYER_CONFIG.maxShield,
+    maxShield: PLAYER_CONFIG.maxShield,
+    overdrive: 0,
+    dashTimer: 0,
+    dashCooldown: 0,
+    dashTrailTick: 0,
+    dashDirX: 1,
+    dashDirY: 0,
+    fireCooldown: 0,
+    invulnTimer: 0,
+    hitFlash: 0,
+    shiftFlash: 0,
+  };
+}
 
-  update(dt) {
-    this.rotInner += dt * 1.5;
-    this.rotOuter -= dt * 0.9;
-    this.pulse += dt * 4;
-  }
+export function createBullet({
+  x,
+  y,
+  vx,
+  vy,
+  polarity,
+  fromPlayer = true,
+  damage = PLAYER_CONFIG.bulletDamage,
+  radius = 5,
+  pierce = 0,
+  life = 1.6,
+}) {
+  return {
+    id: nextEntityId++,
+    x,
+    y,
+    vx,
+    vy,
+    polarity,
+    fromPlayer,
+    damage,
+    radius,
+    pierce,
+    hitIds: new Set(),
+    life,
+    maxLife: life,
+  };
+}
 
-  render(ctx) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
+export function createResonanceOrb(x, y, polarity = randomPolarity()) {
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 38 + Math.random() * 44;
+  return {
+    id: nextEntityId++,
+    kind: 'orb',
+    x,
+    y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    radius: 14,
+    polarity,
+    pulse: Math.random() * Math.PI * 2,
+    life: 16,
+  };
+}
 
-    // Outer rotating amber ring
-    ctx.save();
-    ctx.rotate(this.rotOuter);
-    ctx.strokeStyle = COLOR_AMBER;
-    ctx.shadowColor = COLOR_AMBER;
-    ctx.shadowBlur = 20;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = (i * Math.PI) / 3;
-      const r = this.radius * 1.5 + Math.sin(this.pulse + i) * 4;
-      const px = Math.cos(a) * r;
-      const py = Math.sin(a) * r;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
+export function createChaserDrone(x, y, sector = 1, polarity = randomPolarity()) {
+  const hp = 38 + (sector - 1) * 14;
+  return {
+    id: nextEntityId++,
+    kind: 'chaser',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    radius: 17,
+    hp,
+    maxHp: hp,
+    speed: 142 + (sector - 1) * 18 + Math.random() * 22,
+    polarity,
+    hitFlash: 0,
+    trail: [],
+    score: 220,
+  };
+}
 
-    // Inner rotating cyan octagon
-    ctx.save();
-    ctx.rotate(this.rotInner);
-    ctx.strokeStyle = COLOR_CYAN;
-    ctx.shadowColor = COLOR_CYAN;
-    ctx.shadowBlur = 18;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const a = (i * Math.PI) / 4;
-      const r = this.radius;
-      const px = Math.cos(a) * r;
-      const py = Math.sin(a) * r;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
+export function createLaserGate(x, y, polarity = randomPolarity(), length = 195) {
+  return {
+    id: nextEntityId++,
+    kind: 'gate',
+    x,
+    y,
+    angle: Math.random() * Math.PI,
+    angularVel: (Math.random() < 0.5 ? 1 : -1) * (0.48 + Math.random() * 0.25),
+    halfLength: length * 0.5,
+    radius: 14,
+    polarity,
+    phaseCooldown: 0,
+    life: 15,
+    warmUp: 0.7,
+    pulse: 0,
+  };
+}
 
-    // Core pulsing singularity
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = COLOR_MAGENTA;
-    ctx.shadowBlur = 30;
-    ctx.beginPath();
-    ctx.arc(0, 0, 16 + Math.sin(this.pulse * 2) * 3, 0, Math.PI * 2);
-    ctx.fill();
+export function createTurretBastion(x, y, sector = 2, polarity = randomPolarity()) {
+  const hp = 125 + (sector - 1) * 28;
+  return {
+    id: nextEntityId++,
+    kind: 'bastion',
+    x,
+    y,
+    radius: 26,
+    hp,
+    maxHp: hp,
+    polarity,
+    rot: 0,
+    fireTimer: 1.1 + Math.random() * 0.6,
+    firePeriod: Math.max(1.55, 2.35 - sector * 0.16),
+    chargeRatio: 0,
+    hitFlash: 0,
+    score: 480,
+  };
+}
 
-    ctx.restore();
-  }
+export function createBoss(sectorSpec) {
+  const cfg = sectorSpec.boss;
+  return {
+    id: nextEntityId++,
+    kind: 'boss',
+    name: cfg.name,
+    subtitle: cfg.subtitle,
+    x: ARENA_WIDTH * 0.76,
+    y: ARENA_HEIGHT * 0.5,
+    targetX: ARENA_WIDTH * 0.76,
+    targetY: ARENA_HEIGHT * 0.5,
+    radius: cfg.radius,
+    hp: cfg.maxHp,
+    maxHp: cfg.maxHp,
+    phases: cfg.phases,
+    phase: 1,
+    polarity: POLARITY.CYAN,
+    rot: 0,
+    ringRot: 0,
+    spiralAngle: 0,
+    spiralTimer: 0.14,
+    burstTimer: 2.2,
+    shiftTimer: 5.5,
+    minionTimer: 6.5,
+    laserAngle: Math.PI,
+    laserSweep: 0,
+    hitFlash: 0,
+    score: 2500 * cfg.phases,
+  };
 }

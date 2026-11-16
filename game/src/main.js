@@ -1,103 +1,126 @@
-// Grid Prism: Polarity Protocol - Main Entrypoint & Loop Orchestrator
-import { FIXED_TIMESTEP, STATE_TITLE, STATE_PLAY, STATE_VICTORY, STATE_GAMEOVER } from './config.js';
-import { InputManager } from './input.js';
-import { World } from './world.js';
+/**
+ * Application entry module: initializes canvas, fixed-step simulation loop,
+ * audio/input wiring, clickable UI hitboxes, and deterministic shot staging.
+ */
+
+import { SoundEngine } from './audio.js';
+import { ARENA_HEIGHT, ARENA_WIDTH, FIXED_DT, POLARITY } from './config.js';
+import { InputController } from './input.js';
 import { GameRenderer } from './render.js';
-import { UIRenderer } from './ui.js';
-import { stageShot } from './shots.js';
-import { sound } from './audio.js';
+import { applyShotScene, getRequestedShot } from './shots.js';
+import { HudOverlay } from './ui.js';
+import { GameWorld } from './world.js';
 
-const canvas = document.getElementById('game-canvas');
-const renderer = new GameRenderer(canvas);
-const input = new InputManager();
-const world = new World();
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
 
-input.attach(canvas);
+canvas.width = ARENA_WIDTH;
+canvas.height = ARENA_HEIGHT;
 
-// Check if launched in staged screenshot mode
-const params = new URLSearchParams(window.location.search);
-const shotMode = params.get('shot');
+const sound = new SoundEngine();
+const input = new InputController(canvas);
+const world = new GameWorld(sound);
+const renderer = new GameRenderer(ctx);
+const hud = new HudOverlay();
 
-if (shotMode) {
-  stageShot(shotMode, world);
-  render(0);
-  window.GAME_READY = true;
-} else {
-  // Live Interactive Loop
-  let lastTime = performance.now();
-  let accumulator = 0;
-  let pulseTimer = 0;
+const requestedShot = getRequestedShot();
+if (requestedShot) {
+  applyShotScene(world, requestedShot, input);
+}
 
-  function loop(now) {
-    const dt = Math.min((now - lastTime) / 1000, 0.1);
-    lastTime = now;
-    accumulator += dt;
-    pulseTimer += dt;
+function pointInBox(pt, box) {
+  return pt && box && pt.x >= box.x && pt.x <= box.x + box.w && pt.y >= box.y && pt.y <= box.y + box.h;
+}
 
-    // Handle Input in Current State
-    if (world.state === STATE_TITLE) {
-      if (input.justPressed('Space') || input.justPressed('Enter') || input.mouse.clicked) {
-        sound.ensureContext();
-        world.reset();
-      }
-    } else if (world.state === STATE_PLAY) {
-      if (input.justPressed('KeyQ') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) {
-        world.player.togglePolarity();
-        sound.playSwitch(world.player.polarity);
-      }
-      if (input.justPressed('Space') || input.mouse.clicked) {
-        if (world.player.triggerDash()) {
-          sound.playDash();
+function handleUiInteractions() {
+  const clickPt = input.consumeClick();
+  if (clickPt) {
+    sound.unlock();
+  }
+
+  if (input.consumePress('KeyM')) {
+    sound.toggleMute();
+  }
+  if (input.consumePress('KeyC')) {
+    input.autoFire = !input.autoFire;
+  }
+
+  if (world.state === 'title') {
+    if (input.consumePress('Enter') || input.consumePress('Space') || pointInBox(clickPt, hud.hitboxes.startBtn)) {
+      sound.unlock();
+      world.reset('playing');
+    }
+    return;
+  }
+
+  if (world.state === 'draft') {
+    if (input.consumePress('Digit1')) world.chooseUpgrade(0);
+    else if (input.consumePress('Digit2')) world.chooseUpgrade(1);
+    else if (input.consumePress('Digit3')) world.chooseUpgrade(2);
+    else if (clickPt) {
+      for (const card of hud.hitboxes.draftCards) {
+        if (pointInBox(clickPt, card)) {
+          world.chooseUpgrade(card.index);
+          break;
         }
       }
-    } else if (world.state === STATE_GAMEOVER || world.state === STATE_VICTORY) {
-      if (input.justPressed('KeyR') || input.justPressed('Space') || input.mouse.clicked) {
-        world.reset();
-      }
     }
-
-    // Fixed timestep update
-    while (accumulator >= FIXED_TIMESTEP) {
-      world.update(FIXED_TIMESTEP, input);
-      accumulator -= FIXED_TIMESTEP;
-    }
-
-    input.clearFrame();
-    render(pulseTimer);
-    requestAnimationFrame(loop);
+    return;
   }
 
-  requestAnimationFrame(loop);
+  if (world.state === 'gameover' || world.state === 'victory') {
+    if (input.consumePress('KeyR') || input.consumePress('Enter') || pointInBox(clickPt, hud.hitboxes.restartBtn)) {
+      sound.unlock();
+      world.reset('playing');
+    }
+    return;
+  }
+
+  if (input.consumePress('KeyR')) {
+    world.reset('playing');
+  }
 }
 
-function render(pulse) {
-  renderer.clear();
-  renderer.drawGrid(FIXED_TIMESTEP);
+let lastTime = performance.now();
+let accumulator = 0;
+let shotFramesRendered = 0;
 
-  // Render game entities
-  for (let i = 0; i < world.barriers.length; i++) {
-    world.barriers[i].render(renderer.ctx);
-  }
-  for (let i = 0; i < world.nodes.length; i++) {
-    world.nodes[i].render(renderer.ctx);
-  }
-  if (world.boss) {
-    world.boss.render(renderer.ctx);
-  }
-  world.player.render(renderer.ctx);
-  world.particles.render(renderer.ctx);
+function tick(now) {
+  const rawDt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
+  lastTime = now;
 
-  // HUD
-  if (world.state === STATE_PLAY) {
-    renderer.drawHUD(world);
+  if (!requestedShot) {
+    handleUiInteractions();
+    accumulator += rawDt;
+    while (accumulator >= FIXED_DT) {
+      const stepInput = {
+        move: input.getMoveVector(),
+        mouseX: input.mouseX,
+        mouseY: input.mouseY,
+        firing: input.mouseDown || input.autoFire || input.keys.has('KeyJ'),
+        shift: input.consumeShift(),
+        selectCyan: input.consumePress('Digit1'),
+        selectAmber: input.consumePress('Digit2'),
+        dash: input.consumePress('Space'),
+        nova: input.consumePress('KeyF'),
+      };
+      world.step(FIXED_DT, stepInput);
+      accumulator -= FIXED_DT;
+    }
+    input.endFrame();
   }
 
-  // UI Overlays
-  if (world.state === STATE_TITLE) {
-    UIRenderer.renderTitle(renderer.ctx, pulse);
-  } else if (world.state === STATE_GAMEOVER) {
-    UIRenderer.renderGameOver(renderer.ctx, world);
-  } else if (world.state === STATE_VICTORY) {
-    UIRenderer.renderVictory(renderer.ctx, world);
+  renderer.render(world, input);
+  hud.render(ctx, world, sound.muted);
+
+  if (requestedShot && !window.__shotReady) {
+    shotFramesRendered++;
+    if (shotFramesRendered >= 2) {
+      window.__shotReady = true;
+    }
   }
+
+  requestAnimationFrame(tick);
 }
+
+requestAnimationFrame(tick);
