@@ -259,132 +259,235 @@ export class GameRenderer {
     }
 
     const bodyFill = e.color;
+    const faceAngle =
+      Math.hypot(e.vx, e.vy) > 4
+        ? Math.atan2(e.vy, e.vx)
+        : Math.atan2(BEACON_POS.y - e.y, BEACON_POS.x - e.x);
 
     if (e.isBoss) {
-      this.drawBossBody(ctx, e, bodyFill, time, pulse);
+      this.drawBossBody(ctx, e, bodyFill, time, pulse, faceAngle);
     } else if (e.type === 'crawler') {
+      ctx.rotate(faceAngle);
       ctx.scale(pulse, 2 - pulse);
-      // Claws
+      // 6 animated chitin crab legs
       ctx.strokeStyle = PALETTE.ink;
-      ctx.lineWidth = 3;
-      ctx.fillStyle = e.accent;
+      ctx.lineWidth = 3.2;
+      ctx.lineCap = 'round';
       for (const side of [-1, 1]) {
+        for (let leg = -1; leg <= 1; leg++) {
+          const swing = Math.sin(time * 12 + leg * 1.4 + e.wobble) * 3.5;
+          const bx = leg * 6;
+          const by = side * (e.radius * 0.72);
+          ctx.beginPath();
+          ctx.moveTo(bx, by * 0.6);
+          ctx.lineTo(bx + swing, by + side * 8);
+          ctx.lineTo(bx - 3 + swing * 0.7, by + side * 12);
+          ctx.stroke();
+        }
+      }
+      // Snapping pincers
+      const snap = Math.abs(Math.sin(time * 7 + e.wobble)) * 0.35;
+      ctx.fillStyle = e.accent;
+      ctx.strokeStyle = PALETTE.ink;
+      ctx.lineWidth = 2.4;
+      for (const side of [-1, 1]) {
+        ctx.save();
+        ctx.translate(e.radius * 0.8, side * e.radius * 0.55);
+        ctx.rotate(side * snap);
         ctx.beginPath();
-        ctx.arc(e.radius * 0.72, side * e.radius * 0.65, 6, 0, Math.PI * 2);
+        ctx.ellipse(5, 0, 7.5, 4.5, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        ctx.restore();
       }
+      // Spiked carapace
       ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, e.radius, e.radius * 0.86, 0, 0, Math.PI * 2);
       ctx.fillStyle = bodyFill;
       ctx.fill();
       ctx.stroke();
-      // Shell ridges
-      ctx.strokeStyle = e.accent;
-      ctx.lineWidth = 2;
+      // Barnacle crown ridges & glowing eyes
+      ctx.fillStyle = '#d8e7cf';
       ctx.beginPath();
-      ctx.arc(-2, 0, e.radius * 0.55, -1.1, 1.1);
-      ctx.stroke();
+      ctx.arc(-4, -4, 3.4, 0, Math.PI * 2);
+      ctx.arc(-6, 3, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe478';
+      ctx.beginPath();
+      ctx.arc(e.radius * 0.52, -4, 2.3, 0, Math.PI * 2);
+      ctx.arc(e.radius * 0.52, 4, 2.3, 0, Math.PI * 2);
+      ctx.fill();
     } else if (e.type === 'stalker') {
-      const ang = Math.atan2(e.vy, e.vx);
-      ctx.rotate(ang);
-      ctx.beginPath();
-      ctx.moveTo(e.radius + 4, 0);
-      ctx.quadraticCurveTo(0, -e.radius * 0.8, -e.radius - 6, 0);
-      ctx.quadraticCurveTo(0, e.radius * 0.8, e.radius + 4, 0);
-      ctx.fillStyle = bodyFill;
-      ctx.fill();
-      ctx.lineWidth = 2.4;
-      ctx.strokeStyle = isStealthed ? '#6798e6' : '#d2ecff';
-      ctx.stroke();
-      ctx.fillStyle = '#57f2ff';
-      ctx.beginPath();
-      ctx.arc(6, -3, 2.5, 0, Math.PI * 2);
-      ctx.arc(6, 3, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (e.type === 'mortar') {
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = (i * Math.PI) / 4;
-        const r = i % 2 === 0 ? e.radius : e.radius * 0.86;
-        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      ctx.rotate(faceAngle);
+      // Trailing Abyssal Wraith tendrils
+      for (let t = -1; t <= 1; t++) {
+        ctx.strokeStyle = isStealthed ? 'rgba(104, 154, 232, 0.75)' : '#9be8ff';
+        ctx.lineWidth = t === 0 ? 3.4 : 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-4, t * 4);
+        const w1 = Math.sin(time * 13 + t + e.wobble) * 5;
+        const w2 = Math.cos(time * 11 + t + e.wobble) * 6;
+        ctx.quadraticCurveTo(-e.radius * 0.9, t * 6 + w1, -e.radius * 1.65, t * 4 + w2);
+        ctx.stroke();
       }
+      // Sinuous hooded wraith body & dorsal fins
+      ctx.beginPath();
+      ctx.moveTo(e.radius + 5, 0);
+      ctx.quadraticCurveTo(2, -e.radius * 0.9, -e.radius - 4, -5);
+      ctx.lineTo(-e.radius * 0.55, 0);
+      ctx.lineTo(-e.radius - 4, 5);
+      ctx.quadraticCurveTo(2, e.radius * 0.9, e.radius + 5, 0);
       ctx.closePath();
       ctx.fillStyle = bodyFill;
       ctx.fill();
-      ctx.lineWidth = 2.8;
+      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = isStealthed ? '#6798e6' : '#e0f6ff';
+      ctx.stroke();
+      ctx.fillStyle = '#57f2ff';
+      ctx.beginPath();
+      ctx.arc(6, -3.2, 2.6, 0, Math.PI * 2);
+      ctx.arc(6, 3.2, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (e.type === 'mortar') {
+      ctx.rotate(faceAngle);
+      // Nautilus tentacles at front
+      ctx.strokeStyle = '#d98c5f';
+      ctx.lineWidth = 2.6;
+      for (let i = -2; i <= 2; i++) {
+        const wave = Math.sin(time * 7 + i + e.wobble) * 3;
+        ctx.beginPath();
+        ctx.moveTo(e.radius * 0.6, i * 3.5);
+        ctx.quadraticCurveTo(e.radius + 4, i * 4.5 + wave, e.radius + 9, i * 4);
+        ctx.stroke();
+      }
+      // Armored ribbed Nautilus spiral shell
+      ctx.beginPath();
+      ctx.arc(-2, 0, e.radius, 0, Math.PI * 2);
+      ctx.fillStyle = bodyFill;
+      ctx.fill();
+      ctx.lineWidth = 3;
       ctx.strokeStyle = PALETTE.ink;
       ctx.stroke();
+      // Spiral ribs
+      ctx.strokeStyle = '#a9795c';
+      ctx.lineWidth = 2;
+      for (let r = 0; r < 5; r++) {
+        const a = (r * Math.PI * 2) / 5 + 0.4;
+        ctx.beginPath();
+        ctx.moveTo(-2, 0);
+        ctx.quadraticCurveTo(
+          -2 + Math.cos(a + 0.5) * e.radius * 0.55,
+          Math.sin(a + 0.5) * e.radius * 0.55,
+          -2 + Math.cos(a) * (e.radius - 2),
+          Math.sin(a) * (e.radius - 2)
+        );
+        ctx.stroke();
+      }
+      // Mortar glowing vent core
       ctx.beginPath();
-      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.arc(-2, 0, 7.5, 0, Math.PI * 2);
       ctx.fillStyle = e.accent;
       ctx.fill();
+      ctx.strokeStyle = PALETTE.ink;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
     } else if (e.type === 'siren') {
-      // Floating tentacles
+      // 6 flowing Void Medusa tentacles
       ctx.strokeStyle = e.accent;
       ctx.lineWidth = 2.4;
       for (let i = -2; i <= 2; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * 5, 6);
+        ctx.moveTo(i * 4.5, 5);
         ctx.quadraticCurveTo(
-          i * 7 + Math.sin(time * 5 + i) * 5,
+          i * 6 + Math.sin(time * 6 + i) * 6,
           16,
-          i * 5,
-          e.radius + 7
+          i * 5 + Math.cos(time * 5 + i) * 4,
+          e.radius + 10
         );
         ctx.stroke();
       }
       ctx.beginPath();
-      ctx.arc(0, 0, e.radius * 0.9, Math.PI, 0);
-      ctx.quadraticCurveTo(e.radius * 0.9, 8, 0, 6);
-      ctx.quadraticCurveTo(-e.radius * 0.9, 8, -e.radius * 0.9, 0);
+      ctx.arc(0, 0, e.radius * 0.95, Math.PI, 0);
+      ctx.quadraticCurveTo(e.radius * 0.95, 9, 0, 7);
+      ctx.quadraticCurveTo(-e.radius * 0.95, 9, -e.radius * 0.95, 0);
       ctx.fillStyle = bodyFill;
       ctx.fill();
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 2.4;
       ctx.strokeStyle = PALETTE.ink;
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(0, -3, 5, 0, Math.PI * 2);
+      ctx.arc(0, -3, 5.5, 0, Math.PI * 2);
       ctx.fillStyle = '#ffe1ff';
       ctx.fill();
     }
 
     // Enemy HP Bar when damaged (non-boss)
     if (!e.isBoss && e.hp < e.maxHp) {
+      ctx.rotate(0);
       const bw = Math.max(28, e.radius * 1.7);
       const bh = 4.5;
       const pct = Math.max(0, e.hp / e.maxHp);
       ctx.globalAlpha = 0.95;
       ctx.fillStyle = 'rgba(10, 14, 26, 0.85)';
-      ctx.fillRect(-bw * 0.5, -e.radius - 12, bw, bh);
+      ctx.fillRect(-bw * 0.5, -e.radius - 14, bw, bh);
       ctx.fillStyle = e.litThisFrame ? '#ffd571' : '#ff6a88';
-      ctx.fillRect(-bw * 0.5, -e.radius - 12, bw * pct, bh);
+      ctx.fillRect(-bw * 0.5, -e.radius - 14, bw * pct, bh);
     }
 
     ctx.restore();
   }
 
-  drawBossBody(ctx, e, bodyFill, time, pulse) {
-    // Rotating abyssal ring
+  drawBossBody(ctx, e, bodyFill, time, pulse, faceAngle = 0) {
+    // Rotating abyssal rune ring
     ctx.save();
     ctx.rotate(time * (e.phase > 1 ? 1.6 : 0.85));
     ctx.strokeStyle = e.accent;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3.2;
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3;
       ctx.beginPath();
-      ctx.arc(0, 0, e.radius + 9, a, a + 0.55);
+      ctx.arc(0, 0, e.radius + 12, a, a + 0.52);
       ctx.stroke();
     }
     ctx.restore();
 
+    ctx.save();
+    ctx.rotate(faceAngle);
+
+    // 6 sweeping articulated Kraken tentacles
+    ctx.lineCap = 'round';
+    for (let t = 0; t < 6; t++) {
+      const baseAng = (t * Math.PI * 2) / 6 + 0.4;
+      const wave = Math.sin(time * 5 + t * 1.2) * 0.28;
+      const sx = Math.cos(baseAng) * (e.radius * 0.68);
+      const sy = Math.sin(baseAng) * (e.radius * 0.68);
+      const mx = Math.cos(baseAng + wave) * (e.radius * 1.22);
+      const my = Math.sin(baseAng + wave) * (e.radius * 1.22);
+      const ex = Math.cos(baseAng - wave * 0.8) * (e.radius * 1.56);
+      const ey = Math.sin(baseAng - wave * 0.8) * (e.radius * 1.56);
+
+      ctx.strokeStyle = PALETTE.ink;
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(mx, my, ex, ey);
+      ctx.stroke();
+
+      ctx.strokeStyle = e.accent;
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(mx, my, ex, ey);
+      ctx.stroke();
+    }
+
     ctx.scale(pulse, 2 - pulse);
+    // Spiked Dreadnought Carapace
     ctx.beginPath();
-    const spikes = e.type === 'sovereign' ? 12 : 8;
+    const spikes = e.type === 'sovereign' ? 14 : 10;
     for (let i = 0; i < spikes; i++) {
       const a = (i * Math.PI * 2) / spikes;
-      const r = i % 2 === 0 ? e.radius : e.radius * 0.78;
+      const r = i % 2 === 0 ? e.radius * 1.04 : e.radius * 0.78;
       if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
       else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
@@ -395,15 +498,29 @@ export class GameRenderer {
     ctx.strokeStyle = PALETTE.ink;
     ctx.stroke();
 
-    // Abyssal Crown Core
+    // Inner armored plates & crown crest
     ctx.beginPath();
-    ctx.arc(0, 0, e.radius * 0.38, 0, Math.PI * 2);
+    ctx.arc(0, 0, e.radius * 0.56, 0, Math.PI * 2);
+    ctx.strokeStyle = e.accent;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // Abyssal Crown Core & Dual Glowing Eyes
+    ctx.beginPath();
+    ctx.arc(0, 0, e.radius * 0.34, 0, Math.PI * 2);
     ctx.fillStyle = e.phase >= 2 ? '#ffe39f' : e.accent;
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(0, 0, e.radius * 0.17, 0, Math.PI * 2);
+    ctx.arc(0, 0, e.radius * 0.16, 0, Math.PI * 2);
     ctx.fillStyle = '#19081f';
     ctx.fill();
+
+    ctx.fillStyle = '#fff5a8';
+    ctx.beginPath();
+    ctx.arc(e.radius * 0.45, -10, 4.2, 0, Math.PI * 2);
+    ctx.arc(e.radius * 0.45, 10, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   drawKeeper(ctx, keeper, time) {

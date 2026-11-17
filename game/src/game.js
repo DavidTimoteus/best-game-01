@@ -38,6 +38,7 @@ export class PrismharborGame {
     this.lastFrameTs = 0;
 
     this.resetRunState();
+    this.setupTitleDiorama();
     this.bindEvents();
     this.hud.updateBest(this.bestScore);
     this.hud.updateMute(!this.audio.muted);
@@ -111,6 +112,75 @@ export class PrismharborGame {
     this.calloutTimer = 0;
     this.calloutKicker = '';
     this.calloutTitle = '';
+    this.optics = solveOpticalNetwork(this.beaconAngle, this.nodes, this.getOpticsOptions());
+  }
+
+  setupTitleDiorama() {
+    this.resetRunState();
+    // Showcase a rich optical bounce web across the open center-right harbor
+    this.nodes.push({
+      id: 'title_ruby_prism',
+      kind: 'splitter',
+      x: 770,
+      y: 230,
+      angle: 0.42,
+      portable: false,
+      carried: false,
+      lit: false,
+      incomingAngle: null,
+      overchargeTimer: 99,
+      prismTint: 'crimson',
+      scale: 1,
+      hitCount: 0,
+    });
+    const mNe = this.nodes.find((n) => n.id === 'mirror_ne');
+    if (mNe) {
+      mNe.x = 765;
+      mNe.y = 435;
+      mNe.angle = 2.02;
+    }
+    const mNw = this.nodes.find((n) => n.id === 'mirror_nw');
+    if (mNw) {
+      mNw.x = 515;
+      mNw.y = 256;
+      mNw.angle = 0.56;
+    }
+    this.keeper.x = 505;
+    this.keeper.y = 385;
+    this.keeper.aimAngle = -0.25;
+
+    const boss = spawnEnemy('reaver', 4, this.rng);
+    boss.x = 945;
+    boss.y = 335;
+    boss.vx = -22;
+    boss.vy = 4;
+
+    const c1 = spawnEnemy('crawler', 2, this.rng);
+    c1.x = 855;
+    c1.y = 465;
+    c1.vx = -30;
+    c1.vy = -12;
+
+    const m1 = spawnEnemy('mortar', 3, this.rng);
+    m1.x = 835;
+    m1.y = 195;
+    m1.vx = -15;
+    m1.vy = 18;
+
+    const s1 = spawnEnemy('stalker', 2, this.rng);
+    s1.x = 695;
+    s1.y = 175;
+    s1.vx = 18;
+    s1.vy = 22;
+
+    const sr = spawnEnemy('siren', 5, this.rng);
+    sr.x = 1045;
+    sr.y = 470;
+    sr.vx = -25;
+    sr.vy = -10;
+
+    this.enemies = [boss, c1, m1, s1, sr];
+    this.beaconAngle = Math.PI / 2;
     this.optics = solveOpticalNetwork(this.beaconAngle, this.nodes, this.getOpticsOptions());
   }
 
@@ -215,7 +285,7 @@ export class PrismharborGame {
 
   returnToTitle() {
     this.screen = 'TITLE';
-    this.resetRunState();
+    this.setupTitleDiorama();
     this.hud.setScreen('TITLE');
   }
 
@@ -536,8 +606,21 @@ export class PrismharborGame {
     this.time += dt;
 
     if (this.screen === 'TITLE') {
-      this.beaconAngle = normalizeAngle(Math.PI / 2 + Math.sin(this.time * 0.9) * 0.11);
+      this.beaconAngle = normalizeAngle(Math.PI / 2 + Math.sin(this.time * 0.65) * 0.09);
       this.optics = solveOpticalNetwork(this.beaconAngle, this.nodes, this.getOpticsOptions());
+      for (const e of this.enemies) {
+        e.litThisFrame = false;
+        for (const seg of this.optics.segments) {
+          if (pointToSegmentDistance(e.x, e.y, seg.x1, seg.y1, seg.x2, seg.y2) <= e.radius + 10) {
+            e.litThisFrame = true;
+            if (Math.random() < 0.12) {
+              this.effects.spawnBeamSpark(e.x, e.y, seg.color === 'crimson' ? '#ff7098' : '#ffd66b');
+            }
+            break;
+          }
+        }
+      }
+      this.effects.update(dt);
       return;
     }
 
@@ -1062,7 +1145,7 @@ export class PrismharborGame {
     const hovered = findNearestNode(this.nodes, this.mouse.x, this.mouse.y, 260);
     this.renderer.render({
       time: this.time,
-      keeper: this.screen === 'TITLE' ? null : this.keeper,
+      keeper: this.keeper,
       nodes: this.nodes,
       enemies: this.enemies,
       flareBolts: this.flareBolts,
