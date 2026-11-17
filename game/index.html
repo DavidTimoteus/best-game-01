@@ -3,190 +3,198 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Helios Bastion — Clockwork Courtyard Roguelite</title>
+  <title>Prismharbor — Lighthouse Optics &amp; Nights of the Deep</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main id="game-shell" aria-label="Helios Bastion Game Stage">
-    <canvas id="bastion-canvas" width="1280" height="720"></canvas>
+  <div id="app-shell">
+    <div id="stage-frame">
+      <canvas id="game-canvas" width="1280" height="720"></canvas>
 
-    <!-- Top Live Gameplay HUD -->
-    <header id="combat-hud" class="hud-bar hidden">
-      <div class="hud-group hud-vitals">
-        <div class="hud-plate">
-          <span class="hud-label">WARDEN VITALS</span>
-          <div id="hud-hearts" class="hearts-row"></div>
-        </div>
-        <div class="hud-plate ability-plate">
-          <div class="ability-chip" id="ability-dash">
-            <span class="key-badge">SPACE</span>
-            <span class="ability-name">PARRY DASH</span>
-            <span class="ability-meter"><i id="dash-fill"></i></span>
+      <!-- Top Gameplay HUD -->
+      <header id="hud-bar" class="hud-bar hidden" aria-live="polite">
+        <div class="hud-cluster hud-left">
+          <div class="ward-box">
+            <div class="ward-label-row">
+              <span class="hud-kicker">BASTION WARD</span>
+              <span id="hud-hp-text" class="hud-mono">100 / 100</span>
+            </div>
+            <div class="ward-track">
+              <div id="hud-hp-fill" class="ward-fill"></div>
+            </div>
           </div>
-          <div class="ability-chip" id="ability-nova">
-            <span class="key-badge">E</span>
-            <span class="ability-name">SUNBURST</span>
-            <span class="ability-meter"><i id="nova-fill"></i></span>
-          </div>
-        </div>
-      </div>
 
-      <div class="hud-group hud-wave-center">
-        <div class="wave-banner">
-          <span id="hud-wave-title" class="wave-title">WAVE 1 / 5</span>
-          <div class="wave-progress-track">
-            <div id="hud-wave-bar" class="wave-progress-fill"></div>
-          </div>
-          <span id="hud-enemies-left" class="wave-sub">6 FOES REMAINING</span>
-        </div>
-      </div>
-
-      <div class="hud-group hud-score-right">
-        <div class="hud-plate score-plate">
-          <div class="stat-col">
-            <span class="hud-label">SCORE</span>
-            <span id="hud-score" class="hud-value">00,000</span>
-          </div>
-          <div class="stat-col combo-col">
-            <span class="hud-label">RADIANCE</span>
-            <span id="hud-combo" class="hud-value combo-val">x1.0</span>
-          </div>
-          <div class="stat-col">
-            <span class="hud-label">AMBER</span>
-            <span id="hud-amber" class="hud-value amber-val">0</span>
+          <div class="pulse-box">
+            <div class="ward-label-row">
+              <span class="hud-kicker">PULSE [SPACE]</span>
+              <span id="hud-pulse-text" class="hud-mono">READY</span>
+            </div>
+            <div class="ward-track pulse-track">
+              <div id="hud-pulse-fill" class="pulse-fill"></div>
+            </div>
           </div>
         </div>
-        <div id="hud-relics" class="hud-relic-strip" title="Active Clockwork Relics"></div>
-        <button id="btn-mute" class="icon-btn" type="button" title="Toggle Sound (M)">SFX ON</button>
-      </div>
-    </header>
 
-    <!-- Boss Health Banner -->
-    <section id="boss-banner" class="boss-banner hidden" aria-live="polite">
-      <div class="boss-title-row">
-        <span id="boss-name" class="boss-name">ARCHON KRONOS, THE ECLIPSE ENGINE</span>
-        <span id="boss-phase" class="boss-phase">PHASE I</span>
-      </div>
-      <div class="boss-hp-track">
-        <div id="boss-hp-fill" class="boss-hp-fill"></div>
-      </div>
-    </section>
-
-    <!-- Title / Start Overlay -->
-    <section id="title-overlay" class="overlay-screen">
-      <div class="title-card">
-        <div class="emblem-crest" aria-hidden="true">
-          <svg viewBox="0 0 96 96" width="76" height="76">
-            <circle cx="48" cy="48" r="42" fill="#231B15" stroke="#E8B84B" stroke-width="4" />
-            <circle cx="48" cy="48" r="30" fill="none" stroke="#C88728" stroke-width="2" stroke-dasharray="6 4" />
-            <polygon points="48,10 56,36 84,48 56,60 48,86 40,60 12,48 40,36" fill="#F5C84B" stroke="#1E1712" stroke-width="2.5" />
-            <circle cx="48" cy="48" r="11" fill="#1F7A8C" stroke="#FFF4D6" stroke-width="2.5" />
-          </svg>
-        </div>
-        <p class="eyebrow">SUNDIAL CITADEL · CLOCKWORK ACTION ROGUELITE</p>
-        <h1 class="game-title">HELIOS BASTION</h1>
-        <p class="game-tagline">
-          Hold the sunlit courtyard through <strong>5 escalating waves</strong>, deflect incoming bolts with your
-          <strong>Parry-Dash</strong>, forge <strong>Clockwork Relics</strong>, and shatter <strong>Archon Kronos</strong>.
-        </p>
-
-        <div class="controls-strip">
-          <div class="control-item"><kbd>WASD</kbd><span>Move</span></div>
-          <div class="control-item"><kbd>LMB</kbd><span>Solar Lance</span></div>
-          <div class="control-item"><kbd>SPACE / RMB</kbd><span>Parry-Dash</span></div>
-          <div class="control-item"><kbd>E</kbd><span>Sunburst Nova</span></div>
-          <div class="control-item"><kbd>1-3</kbd><span>Pick Relic</span></div>
+        <div class="hud-cluster hud-center">
+          <div class="night-badge">
+            <span id="hud-mode-tag" class="mode-tag">VIGIL</span>
+            <span id="hud-night-text" class="night-title">NIGHT 1 / 7</span>
+          </div>
+          <div id="hud-wave-sub" class="wave-sub">0 Terrors Remaining</div>
         </div>
 
-        <div class="difficulty-row" role="group" aria-label="Difficulty Mode">
-          <button id="diff-standard" class="diff-btn active" data-diff="standard" type="button">
-            <strong>SOLAR WARDEN</strong>
-            <span>Standard Challenge · 5 HP</span>
-          </button>
-          <button id="diff-ascended" class="diff-btn" data-diff="ascended" type="button">
-            <strong>ECLIPSE TRIAL</strong>
-            <span>Faster Foes · +40% Score</span>
-          </button>
+        <div class="hud-cluster hud-right">
+          <div class="stat-pill">
+            <span class="stat-kicker">SCORE</span>
+            <span id="hud-score" class="stat-val">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-kicker">PEAK CHAIN</span>
+            <span id="hud-chain" class="stat-val accent-cyan">1x</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-kicker">MIRRORS</span>
+            <span id="hud-mirrors" class="stat-val accent-gold">4</span>
+          </div>
+          <button id="btn-mute" class="icon-btn" type="button" title="Toggle Audio (M)">SFX ON</button>
+          <button id="btn-pause" class="icon-btn" type="button" title="Pause (P)">PAUSE</button>
         </div>
+      </header>
 
-        <button id="btn-start" class="primary-cta" type="button">START EXPEDITION</button>
-      </div>
-    </section>
+      <!-- Active Blueprints Strip -->
+      <div id="relic-strip" class="relic-strip hidden"></div>
 
-    <!-- 3-Card Clockwork Relic Draft Modal -->
-    <section id="draft-overlay" class="overlay-screen hidden" aria-modal="true" role="dialog">
-      <div class="draft-panel">
-        <div class="draft-header">
-          <span id="draft-wave-badge" class="draft-badge">WAVE 1 CLEARED</span>
-          <h2 class="draft-title">CHOOSE A CLOCKWORK RELIC</h2>
-          <p class="draft-sub">Click a relic card or press <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> to forge your build</p>
+      <!-- Boss Health Banner -->
+      <div id="boss-banner" class="boss-banner hidden">
+        <div class="boss-title-row">
+          <span id="boss-name" class="boss-name">TIDE REAVER</span>
+          <span id="boss-phase" class="boss-phase">PHASE I</span>
         </div>
-        <div id="draft-cards" class="draft-cards-grid"></div>
-      </div>
-    </section>
-
-    <!-- Pause Modal -->
-    <section id="pause-overlay" class="overlay-screen hidden" aria-modal="true" role="dialog">
-      <div class="compact-modal">
-        <p class="eyebrow">EXPEDITION PAUSED</p>
-        <h2 class="modal-heading">SUNDIAL HALTED</h2>
-        <div class="modal-actions">
-          <button id="btn-resume" class="primary-cta" type="button">RESUME (P)</button>
-          <button id="btn-pause-restart" class="secondary-cta" type="button">RESTART RUN (R)</button>
+        <div class="boss-track">
+          <div id="boss-fill" class="boss-fill"></div>
+          <div class="boss-notch" style="left: 50%"></div>
         </div>
       </div>
-    </section>
 
-    <!-- End-of-Run Results Modal -->
-    <section id="results-overlay" class="overlay-screen hidden" aria-modal="true" role="dialog">
-      <div class="results-card">
-        <div class="results-top">
-          <span id="results-seal" class="rank-seal">S</span>
-          <div>
-            <p id="results-eyebrow" class="eyebrow">SUNDIAL CITADEL RECLAIMED</p>
-            <h2 id="results-title" class="results-heading">VICTORY</h2>
-          </div>
-        </div>
-
-        <div class="results-stats-grid">
-          <div class="result-stat">
-            <span class="stat-label">FINAL SCORE</span>
-            <strong id="res-score" class="stat-num gold">00,000</strong>
-          </div>
-          <div class="result-stat">
-            <span class="stat-label">WAVES CLEARED</span>
-            <strong id="res-waves" class="stat-num">5 / 5</strong>
-          </div>
-          <div class="result-stat">
-            <span class="stat-label">FOES VANQUISHED</span>
-            <strong id="res-kills" class="stat-num">0</strong>
-          </div>
-          <div class="result-stat">
-            <span class="stat-label">BOLTS PARRIED</span>
-            <strong id="res-parries" class="stat-num teal">0</strong>
-          </div>
-          <div class="result-stat">
-            <span class="stat-label">PEAK RADIANCE</span>
-            <strong id="res-combo" class="stat-num">x1.0</strong>
-          </div>
-          <div class="result-stat">
-            <span class="stat-label">RUN TIME</span>
-            <strong id="res-time" class="stat-num">0:00</strong>
-          </div>
-        </div>
-
-        <div class="results-relics-wrap">
-          <span class="hud-label">RELICS FORGED THIS RUN</span>
-          <div id="res-relics" class="results-relics-list"></div>
-        </div>
-
-        <div class="modal-actions">
-          <button id="btn-restart" class="primary-cta" type="button">PLAY AGAIN (R)</button>
-          <button id="btn-menu" class="secondary-cta" type="button">TITLE SCREEN</button>
-        </div>
+      <!-- Night Announcement Banner -->
+      <div id="night-callout" class="night-callout hidden">
+        <div id="callout-kicker" class="callout-kicker">DUSK FALLS</div>
+        <div id="callout-title" class="callout-title">NIGHT 1 — THE FIRST TIDE</div>
       </div>
-    </section>
-  </main>
+
+      <!-- Keeper Contextual Prompt -->
+      <div id="context-hint" class="context-hint hidden"></div>
+
+      <!-- Title Overlay -->
+      <section id="title-overlay" class="overlay-screen">
+        <div class="title-card">
+          <div class="title-crest-row">
+            <span class="crest-badge">LIGHTHOUSE OPTICS · TACTICAL DEFENSE</span>
+            <span id="title-best-pill" class="best-pill">BEST: 0</span>
+          </div>
+          <h1 class="game-title">PRISMHARBOR</h1>
+          <p class="game-subtitle">LIGHTHOUSE OPTICS &amp; NIGHTS OF THE DEEP</p>
+          <p class="game-hook">
+            Sweep the Solar Beacon across brass mirrors and crystal splitters to weave intersecting sunbeams and shatter seven nights of abyssal tides.
+          </p>
+
+          <div class="mode-selector" role="radiogroup" aria-label="Game Mode">
+            <button id="mode-vigil" class="mode-btn active" type="button" data-mode="vigil">
+              <span class="mode-name">7-NIGHT VIGIL</span>
+              <span class="mode-desc">7 Nights · 2 Multi-Phase Bosses · Victory Rank</span>
+            </button>
+            <button id="mode-endless" class="mode-btn" type="button" data-mode="endless">
+              <span class="mode-name">ENDLESS TIDE</span>
+              <span class="mode-desc">Escalating Abyssal Swarms · High-Score Hunt</span>
+            </button>
+          </div>
+
+          <div class="controls-grid">
+            <div class="ctrl-pill"><kbd>WASD</kbd><span>Move Keeper</span></div>
+            <div class="ctrl-pill"><kbd>MOUSE</kbd><span>Sweep Beacon</span></div>
+            <div class="ctrl-pill"><kbd>LMB</kbd><span>Flare Bolt</span></div>
+            <div class="ctrl-pill"><kbd>RMB / Q</kbd><span>Aim Mirror</span></div>
+            <div class="ctrl-pill"><kbd>E</kbd><span>Carry Mirror</span></div>
+            <div class="ctrl-pill"><kbd>SPACE</kbd><span>Resonance Pulse</span></div>
+          </div>
+
+          <div class="title-actions">
+            <button id="btn-start" class="primary-cta" type="button">LIGHT THE BEACON</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Optical Blueprint Draft Overlay -->
+      <section id="draft-overlay" class="overlay-screen hidden">
+        <div class="draft-panel">
+          <div class="draft-header">
+            <span id="draft-kicker" class="crest-badge">NIGHT 1 CLEARED · OPTICAL FORGE</span>
+            <h2 class="draft-title">CHOOSE AN OPTICAL BLUEPRINT</h2>
+            <p class="draft-sub">Select 1 relic to upgrade your beacon optics, mirror lattice, or bastion wards. Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> or click.</p>
+          </div>
+          <div id="draft-cards" class="draft-cards"></div>
+        </div>
+      </section>
+
+      <!-- Pause Overlay -->
+      <section id="pause-overlay" class="overlay-screen hidden">
+        <div class="modal-card">
+          <span class="crest-badge">BEACON HELD</span>
+          <h2 class="modal-title">VIGIL PAUSED</h2>
+          <p class="modal-sub">Adjust your bearings before the tide surges again.</p>
+          <div class="modal-actions">
+            <button id="btn-resume" class="primary-cta" type="button">RESUME VIGIL (P)</button>
+            <button id="btn-restart-pause" class="secondary-cta" type="button">RESTART (R)</button>
+            <button id="btn-quit-title" class="secondary-cta" type="button">TITLE SCREEN</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Overlay -->
+      <section id="results-overlay" class="overlay-screen hidden">
+        <div class="results-card">
+          <div class="results-top">
+            <span id="results-badge" class="crest-badge">SANCTUM PRESERVED</span>
+            <div id="results-rank" class="rank-seal">S</div>
+          </div>
+          <h2 id="results-title" class="results-title">VICTORY — HARBOR ILLUMINATED</h2>
+          <p id="results-sub" class="results-sub">The Solar Beacon outlasted the Abyssal Sovereign and broke the endless dark.</p>
+
+          <div class="results-grid">
+            <div class="res-stat">
+              <span class="res-kicker">FINAL SCORE</span>
+              <span id="res-score" class="res-val accent-gold">0</span>
+            </div>
+            <div class="res-stat">
+              <span class="res-kicker">NIGHTS CLEARED</span>
+              <span id="res-nights" class="res-val">7 / 7</span>
+            </div>
+            <div class="res-stat">
+              <span class="res-kicker">PEAK BOUNCE CHAIN</span>
+              <span id="res-chain" class="res-val accent-cyan">0x</span>
+            </div>
+            <div class="res-stat">
+              <span class="res-kicker">TERRORS PURGED</span>
+              <span id="res-kills" class="res-val">0</span>
+            </div>
+            <div class="res-stat">
+              <span class="res-kicker">BLUEPRINTS FORGED</span>
+              <span id="res-relics" class="res-val">0</span>
+            </div>
+            <div class="res-stat">
+              <span class="res-kicker">BEST RECORD</span>
+              <span id="res-best" class="res-val accent-gold">0</span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-play-again" class="primary-cta" type="button">PLAY AGAIN (R)</button>
+            <button id="btn-results-title" class="secondary-cta" type="button">TITLE SCREEN</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
 
   <script type="module" src="./src/game.js"></script>
 </body>
